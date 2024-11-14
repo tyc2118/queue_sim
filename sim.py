@@ -1,52 +1,34 @@
 import time
 from numpy import random as rng
+import simpy
 
 class System:
-    def __init__(self, arrival_rate, service_rate, max_customer_cnt, num_servers=1):
+    def __init__(self, env, arrival_rate, service_rate, max_customer_cnt, num_servers=1):
+        self.env = env
         self.arrival_time = 1/arrival_rate
+        self.service_time = 1/service_rate
         self.num_servers = num_servers
-        self.server_list = []
 
-        self.customer_cnt = 0
+        self.server_list = []
+        self.servers = simpy.Resource(env, capacity=self.num_servers)
+
         self.max_customer_cnt = max_customer_cnt
 
-        for _ in range(self.num_servers):
-            self.server_list.append(Server(service_rate))
-        
-    def start_sim(self):
-        for s in self.server_list:
-            s.run()
+    def customer(self, env):
+        for _ in range(self.max_customer_cnt):
+            env.process(self.request(env))
+            yield self.env.timeout(rng.exponential(scale=self.arrival_time))
 
-        while (self.customer_cnt < self.max_customer_cnt):
-            # find free server else place on random servers queue
-            for s in self.server_list:
-                if (not s.busy):
-                    s.queue_len += 1
-                    break
-            else:
-                self.server_list[rng.randint(self.num_servers)].queue_len += 1
-            self.customer_cnt += 1
-            time.sleep(rng.exponential(scale=self.arrival_time))
-
-class Server:
-    busy = False
-    queue_len = 0
-
-    def __init__(self, service_rate):
-        self.service_time = 1/service_rate
-
-    def run(self):
-        while (self.queue_len > 0):
-            self.queue_len -= 1
-            self.busy = True
-            time.sleep(rng.exponential(scale=self.service_time))
-            self.busy = False
-
+    def request(self, env):
+        with self.servers.request() as req:
+            yield req
+            yield env.timeout(rng.exponential(scale=self.service_time))
 
 if __name__ == "__main__":
     arrival_rate = 1
     service_rate = 1
     max_customer_cnt = 10000
-    system = System(arrival_rate, service_rate, max_customer_cnt)
+    env = simpy.Environment()
 
-    System.start_sim()
+    system = System(env, arrival_rate, service_rate, max_customer_cnt)
+    env.run()
