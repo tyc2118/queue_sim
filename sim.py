@@ -1,8 +1,9 @@
+import sys
 from numpy import random as rng
 import simpy
 
 class System:
-    def __init__(self, env, arrival_rate, service_rate, max_customer_cnt, num_servers=1):
+    def __init__(self, env, arrival_rate, service_rate, max_customer_cnt, num_servers):
         self.env = env
         self.arrival_time = 1/arrival_rate
         self.service_time = 1/service_rate
@@ -25,13 +26,22 @@ class System:
             yield env.timeout(rng.exponential(scale=self.service_time))
 
 if __name__ == "__main__":
-    print("setup variables.")
-    arrival_rate = 1
-    service_rate = 1
+    assert len(sys.argv) == 3 or len(sys.argv) == 4, f"invalid parameter count: {len(sys.argv)}"
+    arrival_rate = int(sys.argv[1])
+    print(f"arrival_rate: {arrival_rate}")
+    service_rate = int(sys.argv[2])
+    print(f"service_rate: {service_rate}")
+    if (len(sys.argv) == 4):
+        num_servers = int(sys.argv[3])
+    else:
+        num_servers = 1
+    print(f"num_servers: {num_servers}")
+    print("setup variables done.")
+
     max_customer_cnt = 10000
     env = simpy.Environment()
 
     print("initialize sim")
-    system = System(env, arrival_rate, service_rate, max_customer_cnt)
+    system = System(env, arrival_rate, service_rate, max_customer_cnt, num_servers)
     env.run()
-    print("done.")
+    print("sim done.")
