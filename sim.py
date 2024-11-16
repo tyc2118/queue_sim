@@ -5,7 +5,8 @@ from functools import partial, wraps
 import pandas as pd
 
 class System:
-    def __init__(self, env, arrival_rate, service_rate, max_customer_cnt, num_servers):
+    def __init__(self, env, arrival_rate, service_rate, max_customer_cnt, num_servers, warmup):
+        self.warmup = warmup
         self.env = env
         self.arrival_time = 1/arrival_rate
         self.service_time = 1/service_rate
@@ -19,6 +20,10 @@ class System:
         env.process(self.customers(env))
 
     def customers(self, env):
+        while (env.now < self.warmup):
+            env.process(self.request(env, cid=-1))
+            yield self.env.timeout(rng.exponential(scale=self.arrival_time))
+
         cid = 0
         for _ in range(self.max_customer_cnt):
             env.process(self.request(env, cid))
@@ -26,13 +31,18 @@ class System:
             cid += 1
 
     def request(self, env, cid):
+        while (env.now < self.warmup):
+            with self.servers.request() as req:
+                yield req
+                yield env.timeout(rng.exponential(scale=self.service_time))
+
         self.cid_data.append((env.now, cid))
         with self.servers.request() as req:
             yield req
             yield env.timeout(rng.exponential(scale=self.service_time))
             self.cid_data.append((env.now, cid))
 
-def patch_resource(resource, pre=None, post=None):
+def patch_resource(env, resource, pre=None, post=None, warmup=0):
     """Patch *resource* so that it calls the callable *pre* before each
     put/get/request/release operation and the callable *post* after each
     operation.  The only argument to these functions is the resource
@@ -46,14 +56,14 @@ def patch_resource(resource, pre=None, post=None):
         def wrapper(*args, **kwargs):
             # This is the actual wrapper
             # Call "pre" callback
-            if pre:
+            if pre and env.now > warmup:
                 pre(resource)
 
             # Perform actual operation
             ret = func(*args, **kwargs)
 
             # Call "post" callback
-            if post:
+            if post and env.now > warmup:
                 post(resource)
 
             return ret
@@ -89,7 +99,7 @@ def analyze_data(cid_data, resource_data):
     resource_df['util_weight'] = resource_df['users'] * resource_df['time_diff']
     server_utilization = resource_df.mean()['util_weight']
     avg_q_len = resource_df.mean()['q_len_weight']
-    #print(resource_df.head(10)) 
+    # print(resource_df.tail()) 
 
     return (avg_q_len, avg_resp_time, server_utilization)
 
@@ -108,12 +118,14 @@ if __name__ == "__main__":
 
     resource_data = []
     max_customer_cnt = 10000
+    # sim w/o warmup takes roughly 20000
+    warmup = 5000
     env = simpy.Environment()
 
     print("initialize sim")
-    system = System(env, arrival_rate, service_rate, max_customer_cnt, num_servers)
+    system = System(env, arrival_rate, service_rate, max_customer_cnt, num_servers, warmup)
     monitor = partial(monitor, resource_data)
-    patch_resource(system.servers, post=monitor)
+    patch_resource(env, system.servers, post=monitor, warmup=warmup)
     env.run()
     print("sim done.")
 
