@@ -116,7 +116,7 @@ if __name__ == "__main__":
     resource_data = []
     max_customer_cnt = 10000
     # sim w/o warmup takes roughly 20000
-    warmup = 7500
+    warmup = 5000
     env = simpy.Environment()
 
     print("initialize sim")
