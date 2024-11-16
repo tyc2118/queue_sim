@@ -31,16 +31,13 @@ class System:
             cid += 1
 
     def request(self, env, cid):
-        while (env.now < self.warmup):
-            with self.servers.request() as req:
-                yield req
-                yield env.timeout(rng.exponential(scale=self.service_time))
-
-        self.cid_data.append((env.now, cid))
+        if (env.now > self.warmup):
+            self.cid_data.append((env.now, cid))
         with self.servers.request() as req:
             yield req
             yield env.timeout(rng.exponential(scale=self.service_time))
-            self.cid_data.append((env.now, cid))
+            if (env.now > self.warmup):
+                self.cid_data.append((env.now, cid))
 
 def patch_resource(env, resource, pre=None, post=None, warmup=0):
     """Patch *resource* so that it calls the callable *pre* before each
@@ -99,7 +96,7 @@ def analyze_data(cid_data, resource_data):
     resource_df['util_weight'] = resource_df['users'] * resource_df['time_diff']
     server_utilization = resource_df.mean()['util_weight']
     avg_q_len = resource_df.mean()['q_len_weight']
-    # print(resource_df.tail()) 
+    #print(resource_df.tail(10)) 
 
     return (avg_q_len, avg_resp_time, server_utilization)
 
@@ -119,7 +116,7 @@ if __name__ == "__main__":
     resource_data = []
     max_customer_cnt = 10000
     # sim w/o warmup takes roughly 20000
-    warmup = 5000
+    warmup = 7500
     env = simpy.Environment()
 
     print("initialize sim")
