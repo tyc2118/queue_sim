@@ -52,8 +52,6 @@ if __name__ == "__main__":
 
             resource_df['rho'] = rho
             resource_df['num_servers'] = ns
-            #print(f"max q_len: {resource_df['q_len'].max()}")
-            print(resource_df.shape)
             agg_resource_df = pd.concat([agg_resource_df, resource_df[['time', 'rho', 'num_servers', 'q_len']]])
 
             print("results")
@@ -61,10 +59,6 @@ if __name__ == "__main__":
             print(f"avg_resp_time: {avg_resp_time}")
             print(f"server_utilization: {server_utilization}")
             print("\n---------------------\n")
-
-            #print(agg_resource_df.head())
-            #print(agg_resource_df.shape)
-
 
         cwd = os.getcwd()
         g = sns.FacetGrid(agg_resource_df, col="rho")
