@@ -1,15 +1,39 @@
-# Installation
-Create python venv and install required packages with
-`pip install -r requirements.txt`
+# queue_sim
+M/M/k queue simulator.
 
-# Usage
-Activate and run within venv
+## Installation
+Create python virtual environment.
 
-## user_sim.py
-Single test cases with cmd_line input of arrival rate and service rate. 
-Number of servers can be specified as a 3rd parameter if needed, but defaults to 1 if not.
+```bash
+python -m venv {venv_dir}
+```
 
-Example usage with arrival rate=0.5, service rate=1.0, num servers=1: `python user_sim.py 0.5 1.0`
+Install required packages.
+```
+pip install -r requirements.txt
+```
 
-## unit_test.py
-Sweep rho values: 0.5, 0.7, 0.9 across num servers: 1,2 and plot corresponding histograms with theoretical queue length.
+## Usage
+Activate and run within venv.
+```bash
+source {venv_dir}/bin/activate
+```
+
+### user_sim.py
+Single test cases with command line input of arrival rate $\lambda$ and service rate $\mu$. 
+Number of servers can be specified as an optional 3rd parameter, but defaults to 1 if unspecified.
+
+```bash
+# arrival rate = 0.5
+# service rate = 1.0
+# num servers = 1
+python user_sim.py 0.5 1.0
+```
+
+Returns average queue len, average response time, and server utilization
+
+### unit_test.py
+Sweep $\rho = \lambda/\mu$ values: 0.5, 0.7, 0.9 across number of servers: 1,2 and plot corresponding histogram distributions with theoretical queue length.
+```bash
+python unit_test.py
+```
